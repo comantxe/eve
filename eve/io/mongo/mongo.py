@@ -59,8 +59,8 @@ class Mongo(DataLayer):
     serializers = {
         'objectid': lambda value: ObjectId(value) if value else None,
         'datetime': str_to_date,
-        'integer': lambda value: int(value) if value else None,
-        'float': lambda value: float(value) if value else None,
+        'integer': lambda value: int(value) if value is not None else None,
+        'float': lambda value: float(value) if value is not None else None,
     }
 
     # JSON serializer is a class attribute. Allows extensions to replace it
@@ -353,6 +353,10 @@ class Mongo(DataLayer):
         try:
             return self.driver.db[datasource].insert(doc_or_docs,
                                                      **self._wc(resource))
+        except pymongo.errors.DuplicateKeyError as e:
+            abort(409, description=debug_error_message(
+                'pymongo.errors.DuplicateKeyError: %s' % e
+            ))
         except pymongo.errors.InvalidOperation as e:
             abort(500, description=debug_error_message(
                 'pymongo.errors.InvalidOperation: %s' % e
